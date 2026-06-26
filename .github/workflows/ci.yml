@@ -12,9 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build-and-runtime-test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Check out repository
@@ -38,16 +38,20 @@ jobs:
         continue-on-error: true
         run: shellcheck --severity=warning scripts/*.sh
 
-      - name: Build patched application
+      - name: Build complete patched application
         run: |
           chmod +x scripts/*.sh
           ./scripts/build.sh
 
-      - name: Show package metadata
+      - name: Show upstream and package metadata
         run: |
-          cat build/UPSTREAM_REF
-          cat build/UPSTREAM_COMMIT
-          cat build/*.sha256
+          cat build/UPSTREAM_VERSION
+          cat build/UPSTREAM_PACKAGE_URL
+          cat build/UPSTREAM_SHA256
+          cat build/*.tar.gz.sha256
+
+      - name: Test app in disposable Nextcloud 33
+        run: ./scripts/runtime-test.sh
 
       - name: Upload installable package
         uses: actions/upload-artifact@v4
@@ -56,7 +60,8 @@ jobs:
           path: |
             build/snappymail-nextcloud-nc33-*.tar.gz
             build/snappymail-nextcloud-nc33-*.tar.gz.sha256
-            build/UPSTREAM_REF
-            build/UPSTREAM_COMMIT
+            build/UPSTREAM_VERSION
+            build/UPSTREAM_PACKAGE_URL
+            build/UPSTREAM_SHA256
           if-no-files-found: error
           retention-days: 14
