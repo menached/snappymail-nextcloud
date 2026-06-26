@@ -1,8 +1,6 @@
-diff --git a/lib/Controller/PageController.php b/lib/Controller/PageController.php
-index 7744cb4..0000000 100644
 --- a/lib/Controller/PageController.php
 +++ b/lib/Controller/PageController.php
-@@ -8,10 +8,20 @@ use OCA\SnappyMail\ContentSecurityPolicy;
+@@ -7,9 +7,19 @@
  
  use OCP\AppFramework\Controller;
  use OCP\AppFramework\Http\TemplateResponse;
@@ -22,7 +20,7 @@ index 7744cb4..0000000 100644
  	/**
  	 * @NoAdminRequired
  	 * @NoCSRFRequired
-@@ -30,7 +40,7 @@ class PageController extends Controller
+@@ -28,7 +38,7 @@
  		}
  
  		if (!$bAdmin && $config->getAppValue('snappymail', 'snappymail-no-embed')) {
@@ -31,7 +29,7 @@ index 7744cb4..0000000 100644
  			\OCP\Util::addScript('snappymail', 'snappymail');
  			\OCP\Util::addStyle('snappymail', 'style');
  			SnappyMailHelper::startApp();
-@@ -45,7 +55,7 @@ class PageController extends Controller
+@@ -43,7 +53,7 @@
  			return $response;
  		}
  
