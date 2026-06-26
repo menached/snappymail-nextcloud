@@ -1,0 +1,58 @@
+name: Build and validate NC33 package
+
+on:
+  push:
+    branches:
+      - main
+      - 'port/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends patch shellcheck
+
+      - name: Check shell scripts
+        run: shellcheck scripts/*.sh
+
+      - name: Build patched application
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/build.sh
+
+      - name: Show package metadata
+        run: |
+          cat build/UPSTREAM_REF
+          cat build/UPSTREAM_COMMIT
+          cat build/*.sha256
+
+      - name: Upload installable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: snappymail-nextcloud-nc33
+          path: |
+            build/snappymail-nextcloud-nc33-*.tar.gz
+            build/snappymail-nextcloud-nc33-*.tar.gz.sha256
+            build/UPSTREAM_REF
+            build/UPSTREAM_COMMIT
+          if-no-files-found: error
+          retention-days: 14
