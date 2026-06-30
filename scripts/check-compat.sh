@@ -5,13 +5,19 @@ APP="${1:?Usage: check-compat.sh /path/to/snappymail-app}"
 INFO="$APP/appinfo/info.xml"
 APPLICATION="$APP/lib/AppInfo/Application.php"
 CONTROLLER="$APP/lib/Controller/PageController.php"
+INSTALL_STEP="$APP/lib/Migration/InstallStep.php"
+BUNDLED_PLUGIN="$APP/resources/plugins/nextcloud/index.php"
+VERSION="$(tr -d '[:space:]' < "$APP/VERSION")"
 
 printf '==> Verifying application structure\n'
 for required_file in \
     "$INFO" \
     "$APPLICATION" \
     "$CONTROLLER" \
-    "$APP/app/index.php"; do
+    "$INSTALL_STEP" \
+    "$BUNDLED_PLUGIN" \
+    "$APP/app/index.php" \
+    "$APP/app/snappymail/v/$VERSION/include.php"; do
     [[ -f "$required_file" ]] || {
         echo "ERROR: Missing $required_file" >&2
         exit 1
@@ -45,6 +51,20 @@ grep -Fq '$c->query(INavigationManager::class)' "$APPLICATION" || {
     echo "ERROR: Application does not supply INavigationManager to PageController" >&2
     exit 1
 }
+
+printf '==> Verifying pinned bundled Nextcloud extension\n'
+grep -Fq 'class NextcloudPlugin extends \RainLoop\Plugins\AbstractPlugin' "$BUNDLED_PLUGIN" || {
+    echo "ERROR: Bundled extension does not declare NextcloudPlugin" >&2
+    exit 1
+}
+grep -Fq 'Install pinned bundled extension: nextcloud' "$INSTALL_STEP" || {
+    echo "ERROR: InstallStep does not install the pinned bundled extension" >&2
+    exit 1
+}
+if grep -Fq "Repository::installPackage('plugin', 'nextcloud')" "$INSTALL_STEP"; then
+    echo "ERROR: InstallStep still downloads the Nextcloud extension at runtime" >&2
+    exit 1
+fi
 
 printf '==> PHP syntax validation\n'
 while IFS= read -r -d '' php_file; do
