@@ -53,11 +53,11 @@ jobs:
           done
           cat build/*.tar.gz.sha256
 
-      - name: Test app in disposable Nextcloud 33
+      - name: Test real automatic login in disposable Nextcloud 33
         shell: bash
         run: |
           set -o pipefail
-          ./scripts/runtime-test.sh 2>&1 | tee runtime-test.log
+          ./scripts/runtime-test-real.sh 2>&1 | tee runtime-test.log
 
       - name: Upload CI diagnostics
         if: always()
