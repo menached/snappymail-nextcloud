@@ -173,23 +173,27 @@ WEB_UID="$(docker exec "$NC_CONTAINER" id -u www-data)"
 WEB_GID="$(docker exec "$NC_CONTAINER" id -g www-data)"
 
 docker exec -i "$NC_CONTAINER" sh -c 'cat > /etc/dovecot/dovecot.conf' <<DOVECOT
+dovecot_config_version = 2.4.0
+dovecot_storage_version = 2.4.0
+
 protocols = imap
 listen = 127.0.0.1
-ssl = no
-disable_plaintext_auth = no
+auth_allow_cleartext = yes
 auth_mechanisms = plain login
-mail_location = maildir:/tmp/dovecot-mail/%n/Maildir
+
+mail_driver = maildir
+mail_path = ~/Maildir
 first_valid_uid = 1
 first_valid_gid = 1
 
-passdb {
-  driver = passwd-file
-  args = scheme=PLAIN username_format=%n /etc/dovecot/users
+passdb passwd-file {
+  auth_username_format = %{user | username}
+  passwd_file_path = /etc/dovecot/users
 }
 
-userdb {
-  driver = static
-  args = uid=${WEB_UID} gid=${WEB_GID} home=/tmp/dovecot-mail/%n
+userdb passwd-file {
+  auth_username_format = %{user | username}
+  passwd_file_path = /etc/dovecot/users
 }
 
 namespace inbox {
@@ -200,6 +204,7 @@ service imap-login {
   inet_listener imap {
     address = 127.0.0.1
     port = 143
+    ssl = no
   }
 }
 
@@ -209,7 +214,8 @@ debug_log_path = /tmp/dovecot-debug.log
 auth_verbose = yes
 DOVECOT
 
-printf '%s:{PLAIN}%s\n' "$TEST_USER" "$TEST_PASSWORD" | \
+printf '%s:{PLAIN}%s:%s:%s::/tmp/dovecot-mail/%s::\n' \
+    "$TEST_USER" "$TEST_PASSWORD" "$WEB_UID" "$WEB_GID" "$TEST_USER" | \
     docker exec -i "$NC_CONTAINER" sh -c 'cat > /etc/dovecot/users && chmod 600 /etc/dovecot/users'
 
 docker exec -u www-data "$NC_CONTAINER" sh -lc \
