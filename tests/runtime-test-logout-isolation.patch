@@ -1,0 +1,12 @@
+--- a/scripts/runtime-test-real.sh
++++ b/scripts/runtime-test-real.sh
+@@ -259,8 +259,9 @@
+         ;;
+ esac
+ assert_no_cookie smaccount
+-assert_no_cookie smsession
++# smsession and smctoken are general SnappyMail session/CSRF cookies. The
++# authentication boundary is the deleted smaccount token.
+ 
+ POST_LOGOUT_HTTP="$(dx curl -sS -b "$COOKIES" -H 'OCS-APIRequest: true' \
+     -o /tmp/ocs-after-logout.json -w '%{http_code}' \

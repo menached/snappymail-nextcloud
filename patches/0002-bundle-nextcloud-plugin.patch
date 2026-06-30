@@ -1,0 +1,74 @@
+--- a/lib/Migration/InstallStep.php
++++ b/lib/Migration/InstallStep.php
+@@ -61,9 +61,22 @@
+ 			$bSave = true;
+ 		}
+ 
+-		if (!\is_dir(APP_PLUGINS_PATH . 'nextcloud')) {
+-			$output->info('Install extension: nextcloud');
+-			\SnappyMail\Repository::installPackage('plugin', 'nextcloud');
++		$bundledPlugin = \dirname(\dirname(__DIR__)) . '/resources/plugins/nextcloud';
++		$installedPlugin = APP_PLUGINS_PATH . 'nextcloud';
++		$bundledPluginIndex = $bundledPlugin . '/index.php';
++		$installedPluginIndex = $installedPlugin . '/index.php';
++
++		if (!\is_file($bundledPluginIndex)) {
++			throw new \RuntimeException('Bundled Nextcloud extension is missing');
++		}
++
++		$installBundledPlugin = !\is_file($installedPluginIndex)
++			|| \hash_file('sha256', $installedPluginIndex) !== \hash_file('sha256', $bundledPluginIndex);
++
++		if ($installBundledPlugin) {
++			$output->info('Install pinned bundled extension: nextcloud');
++			self::removeDirectory($installedPlugin);
++			self::copyDirectory($bundledPlugin, $installedPlugin);
+ 			$oConfig->Set('plugins', 'enable', true);
+ 			$aList = \SnappyMail\Repository::getEnabledPackagesNames();
+ 			$aList[] = 'nextcloud';
+@@ -136,4 +149,45 @@
+ 			$logger->error("custom config error: " . $e->getMessage());
+ 		}
+ 	}
++
++	private static function copyDirectory(string $source, string $destination): void
++	{
++		if (!\is_dir($destination) && !\mkdir($destination, 0770, true) && !\is_dir($destination)) {
++			throw new \RuntimeException("Unable to create directory {$destination}");
++		}
++
++		$iterator = new \RecursiveIteratorIterator(
++			new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
++			\RecursiveIteratorIterator::SELF_FIRST
++		);
++
++		foreach ($iterator as $item) {
++			$target = $destination . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
++			if ($item->isDir()) {
++				if (!\is_dir($target) && !\mkdir($target, 0770, true) && !\is_dir($target)) {
++					throw new \RuntimeException("Unable to create directory {$target}");
++				}
++			} elseif (!\copy($item->getPathname(), $target)) {
++				throw new \RuntimeException("Unable to copy bundled extension file {$target}");
++			}
++		}
++	}
++
++	private static function removeDirectory(string $directory): void
++	{
++		if (!\is_dir($directory)) {
++			return;
++		}
++
++		$iterator = new \RecursiveIteratorIterator(
++			new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
++			\RecursiveIteratorIterator::CHILD_FIRST
++		);
++
++		foreach ($iterator as $item) {
++			$item->isDir() ? \rmdir($item->getPathname()) : \unlink($item->getPathname());
++		}
++
++		\rmdir($directory);
++	}
+ }
