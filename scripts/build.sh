@@ -151,9 +151,13 @@ printf '%s\n' "$SOURCE_SHA256" > "$BUILD_DIR/UPSTREAM_SOURCE_SHA256"
 printf '==> Running compatibility checks\n'
 "$ROOT/scripts/check-compat.sh" "$APP"
 
-PACKAGE="$BUILD_DIR/snappymail-nextcloud-nc33-${UPSTREAM_VERSION}-doap.tar.gz"
+PACKAGE_NAME="snappymail-nextcloud-nc33-${UPSTREAM_VERSION}-doap.tar.gz"
+PACKAGE="$BUILD_DIR/$PACKAGE_NAME"
 tar -czf "$PACKAGE" -C "$BUILD_DIR" snappymail
-sha256sum "$PACKAGE" > "$PACKAGE.sha256"
+(
+    cd "$BUILD_DIR"
+    sha256sum "$PACKAGE_NAME" > "$PACKAGE_NAME.sha256"
+)
 
 printf '==> Build complete\n'
 printf '    App:     %s\n' "$APP"
