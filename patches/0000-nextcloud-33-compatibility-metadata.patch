@@ -1,9 +1,9 @@
 --- a/appinfo/info.xml
 +++ b/appinfo/info.xml
-@@ -75,7 +75,7 @@
- 		<lib>pdo_sqlite</lib>
- 		<lib>tidy</lib>
- 		<lib>uuid</lib>
+@@ -66,7 +66,7 @@
+ 		<lib>xxtea</lib>
+ 		<lib>zip</lib>
+ -->
 -		<nextcloud min-version="20" max-version="30" />
 +		<nextcloud min-version="20" max-version="33" />
  	</dependencies>
