@@ -5,8 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UPSTREAM_VERSION="${UPSTREAM_VERSION:-$(tr -d '[:space:]' < "$ROOT/UPSTREAM_VERSION")}"
 UPSTREAM_REPOSITORY="${UPSTREAM_REPOSITORY:-the-djmaze/snappymail}"
 UPSTREAM_TAG="${UPSTREAM_TAG:-v${UPSTREAM_VERSION}}"
-UPSTREAM_ASSET="${UPSTREAM_ASSET:-snappymail-${UPSTREAM_VERSION}-nextcloud.tar.gz}"
-UPSTREAM_PACKAGE_URL="${UPSTREAM_PACKAGE_URL:-https://github.com/${UPSTREAM_REPOSITORY}/releases/download/${UPSTREAM_TAG}/${UPSTREAM_ASSET}}"
+UPSTREAM_RELEASE_API="${UPSTREAM_RELEASE_API:-https://api.github.com/repos/${UPSTREAM_REPOSITORY}/releases/tags/${UPSTREAM_TAG}}"
+UPSTREAM_ASSET="${UPSTREAM_ASSET:-}"
+UPSTREAM_PACKAGE_URL="${UPSTREAM_PACKAGE_URL:-}"
 EXPECTED_SHA_FILE="${EXPECTED_SHA_FILE:-$ROOT/UPSTREAM_SHA256}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 WORK_DIR="$(mktemp -d)"
@@ -16,9 +17,62 @@ cleanup() {
 }
 trap cleanup EXIT
 
+if [[ -z "$UPSTREAM_PACKAGE_URL" ]]; then
+    RELEASE_JSON="$WORK_DIR/release.json"
+
+    printf '==> Resolving pinned SnappyMail release asset from GitHub\n'
+    printf '    Repository: %s\n' "$UPSTREAM_REPOSITORY"
+    printf '    Tag:        %s\n' "$UPSTREAM_TAG"
+    printf '    API:        %s\n' "$UPSTREAM_RELEASE_API"
+
+    curl \
+        --fail \
+        --location \
+        --silent \
+        --show-error \
+        --retry 5 \
+        --retry-delay 2 \
+        --retry-all-errors \
+        --connect-timeout 20 \
+        --max-time 120 \
+        -H 'Accept: application/vnd.github+json' \
+        "$UPSTREAM_RELEASE_API" \
+        --output "$RELEASE_JSON"
+
+    echo '    Published assets:'
+    jq -r '.assets[]?.name | "      - \(.)"' "$RELEASE_JSON"
+
+    if [[ -n "$UPSTREAM_ASSET" ]]; then
+        UPSTREAM_PACKAGE_URL="$(
+            jq -er \
+                --arg asset "$UPSTREAM_ASSET" \
+                '.assets[] | select(.name == $asset) | .browser_download_url' \
+                "$RELEASE_JSON"
+        )"
+    else
+        mapfile -t NEXTCLOUD_ASSETS < <(
+            jq -r \
+                '.assets[]
+                 | select(.name | test("nextcloud"; "i"))
+                 | select(.name | endswith(".tar.gz"))
+                 | .browser_download_url' \
+                "$RELEASE_JSON"
+        )
+
+        if (( ${#NEXTCLOUD_ASSETS[@]} != 1 )); then
+            echo "ERROR: Expected exactly one Nextcloud .tar.gz asset, found ${#NEXTCLOUD_ASSETS[@]}" >&2
+            echo "ERROR: Set UPSTREAM_ASSET or UPSTREAM_PACKAGE_URL explicitly after reviewing the asset list" >&2
+            exit 1
+        fi
+
+        UPSTREAM_PACKAGE_URL="${NEXTCLOUD_ASSETS[0]}"
+        UPSTREAM_ASSET="${UPSTREAM_PACKAGE_URL##*/}"
+    fi
+fi
+
+UPSTREAM_ASSET="${UPSTREAM_ASSET:-${UPSTREAM_PACKAGE_URL##*/}}"
+
 printf '==> Downloading pinned SnappyMail Nextcloud release asset\n'
-printf '    Repository: %s\n' "$UPSTREAM_REPOSITORY"
-printf '    Tag:        %s\n' "$UPSTREAM_TAG"
 printf '    Asset:      %s\n' "$UPSTREAM_ASSET"
 printf '    URL:        %s\n' "$UPSTREAM_PACKAGE_URL"
 
@@ -82,6 +136,7 @@ rm -f "$APP/appinfo/signature.json"
 printf '%s\n' "$UPSTREAM_VERSION" > "$BUILD_DIR/UPSTREAM_VERSION"
 printf '%s\n' "$UPSTREAM_REPOSITORY" > "$BUILD_DIR/UPSTREAM_REPOSITORY"
 printf '%s\n' "$UPSTREAM_TAG" > "$BUILD_DIR/UPSTREAM_TAG"
+printf '%s\n' "$UPSTREAM_ASSET" > "$BUILD_DIR/UPSTREAM_ASSET"
 printf '%s\n' "$UPSTREAM_PACKAGE_URL" > "$BUILD_DIR/UPSTREAM_PACKAGE_URL"
 printf '%s\n' "$UPSTREAM_SHA256" > "$BUILD_DIR/UPSTREAM_SHA256"
 
