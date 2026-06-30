@@ -1,0 +1,29 @@
+--- a/scripts/runtime-test-real.sh
++++ b/scripts/runtime-test-real.sh
+@@ -259,8 +259,9 @@
+         ;;
+ esac
+ assert_no_cookie smaccount
+-assert_no_cookie smsession
++# smsession and smctoken are general SnappyMail session/CSRF cookies. The
++# authentication boundary is the deleted smaccount token.
+ 
+ POST_LOGOUT_HTTP="$(dx curl -sS -b "$COOKIES" -H 'OCS-APIRequest: true' \
+     -o /tmp/ocs-after-logout.json -w '%{http_code}' \
+@@ -269,6 +270,17 @@
+     echo "ERROR: Nextcloud session remained authenticated after logout" >&2
+     exit 1
+ fi
++
++POST_LOGOUT_SM_HTTP="$(dx curl -sS -L \
++    -b "$COOKIES" -c "$COOKIES" \
++    -o /tmp/snappymail-after-logout.html -w '%{http_code}' \
++    http://127.0.0.1/index.php/apps/snappymail/)"
++[[ "$POST_LOGOUT_SM_HTTP" == 200 ]] || {
++    echo "ERROR: Post-logout SnappyMail request returned HTTP $POST_LOGOUT_SM_HTTP" >&2
++    exit 1
++}
++assert_no_cookie smaccount
+ 
+ section "REAL AUTOMATIC-LOGIN TEST PASSED"
+ echo "PASS: Nextcloud password login created a SnappyMail IMAP session."
