@@ -157,7 +157,7 @@ WEB_UID="$(dx id -u www-data)"
 WEB_GID="$(dx id -g www-data)"
 printf '%s:{PLAIN}%s:%s:%s::/tmp/dovecot-mail/%s::\n' \
     "$USER_NAME" "$USER_PASSWORD" "$WEB_UID" "$WEB_GID" "$USER_NAME" | \
-    docker exec -i "$NC" sh -c 'cat > /etc/dovecot/users && chmod 600 /etc/dovecot/users'
+    docker exec -i "$NC" sh -c 'cat > /etc/dovecot/users && chown root:dovecot /etc/dovecot/users && chmod 640 /etc/dovecot/users'
 
 dx sh -lc "install -d -o www-data -g www-data /tmp/dovecot-mail/$USER_NAME/Maildir/cur /tmp/dovecot-mail/$USER_NAME/Maildir/new /tmp/dovecot-mail/$USER_NAME/Maildir/tmp"
 dx doveconf -c /etc/dovecot/dovecot.conf -n
