@@ -29,7 +29,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends patch shellcheck
+          sudo apt-get install -y --no-install-recommends jq patch shellcheck
 
       - name: Check shell scripts for errors
         run: shellcheck --severity=error scripts/*.sh
@@ -47,9 +47,10 @@ jobs:
 
       - name: Show upstream and package metadata
         run: |
-          cat build/UPSTREAM_VERSION
-          cat build/UPSTREAM_PACKAGE_URL
-          cat build/UPSTREAM_SHA256
+          for metadata in build/UPSTREAM_*; do
+            echo "--- ${metadata}"
+            cat "${metadata}"
+          done
           cat build/*.tar.gz.sha256
 
       - name: Test app in disposable Nextcloud 33
@@ -66,9 +67,7 @@ jobs:
           path: |
             build.log
             runtime-test.log
-            build/UPSTREAM_VERSION
-            build/UPSTREAM_PACKAGE_URL
-            build/UPSTREAM_SHA256
+            build/UPSTREAM_*
           if-no-files-found: warn
           retention-days: 14
 
@@ -79,8 +78,6 @@ jobs:
           path: |
             build/snappymail-nextcloud-nc33-*.tar.gz
             build/snappymail-nextcloud-nc33-*.tar.gz.sha256
-            build/UPSTREAM_VERSION
-            build/UPSTREAM_PACKAGE_URL
-            build/UPSTREAM_SHA256
+            build/UPSTREAM_*
           if-no-files-found: error
           retention-days: 14
