@@ -1,0 +1,20 @@
+--- a/scripts/runtime-test-real.sh
++++ b/scripts/runtime-test-real.sh
+@@ -223,7 +223,7 @@
+ dx cp "$COOKIES" /tmp/cookies-before-logout
+ 
+ for n in $(seq 1 20); do
+-    dx grep -Fq "Login: user=<$USER_NAME>" /tmp/dovecot-info.log 2>/dev/null && break
++    dx grep -Eq "(Login|Logged in): user=<$USER_NAME>" /tmp/dovecot-info.log 2>/dev/null && break
+     (( n < 20 )) || {
+         dx cat /tmp/dovecot-info.log || true
+         echo "ERROR: No successful IMAP login for $USER_NAME" >&2
+@@ -232,7 +232,7 @@
+     sleep 1
+ done
+ 
+-dx grep -F "Login: user=<$USER_NAME>" /tmp/dovecot-info.log
++dx grep -E "(Login|Logged in): user=<$USER_NAME>" /tmp/dovecot-info.log
+ 
+ KNOWN="$(dx sh -lc 'grep -RInE "Invalid plugin class NextcloudPlugin|Call to undefined method OC\\\\Server|ArgumentCountError|Too few arguments to function OCA\\\\SnappyMail" /var/www/html/data 2>/dev/null || true')"
+ [[ -z "$KNOWN" ]] || {
