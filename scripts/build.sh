@@ -26,7 +26,7 @@ verify_sha256() {
     local actual expected
 
     actual="$(sha256sum "$archive" | awk '{print $1}')"
-    printf '    %s SHA256: %s\n' "$label" "$actual"
+    printf '    %s SHA256: %s\n' "$label" "$actual" >&2
 
     if [[ -s "$expected_file" ]]; then
         expected="$(tr -d '[:space:]' < "$expected_file")"
@@ -36,9 +36,9 @@ verify_sha256() {
             echo "ERROR: Received $actual" >&2
             exit 1
         fi
-        printf '    %s SHA256 verification passed\n' "$label"
+        printf '    %s SHA256 verification passed\n' "$label" >&2
     else
-        printf '    WARNING: %s SHA256 is not pinned yet; recording it for review\n' "$label"
+        printf '    WARNING: %s SHA256 is not pinned yet; recording it for review\n' "$label" >&2
     fi
 
     printf '%s\n' "$actual"
