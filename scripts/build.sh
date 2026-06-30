@@ -6,8 +6,8 @@ UPSTREAM_VERSION="${UPSTREAM_VERSION:-$(tr -d '[:space:]' < "$ROOT/UPSTREAM_VERS
 UPSTREAM_COMMIT="${UPSTREAM_COMMIT:-$(tr -d '[:space:]' < "$ROOT/UPSTREAM_COMMIT")}"
 UPSTREAM_REPOSITORY="${UPSTREAM_REPOSITORY:-the-djmaze/snappymail}"
 UPSTREAM_TAG="${UPSTREAM_TAG:-v${UPSTREAM_VERSION}}"
-UPSTREAM_RELEASE_API="${UPSTREAM_RELEASE_API:-https://api.github.com/repos/${UPSTREAM_REPOSITORY}/releases/tags/${UPSTREAM_TAG}}"
 UPSTREAM_CORE_ASSET="${UPSTREAM_CORE_ASSET:-snappymail-${UPSTREAM_VERSION}.tar.gz}"
+UPSTREAM_CORE_URL="${UPSTREAM_CORE_URL:-https://github.com/${UPSTREAM_REPOSITORY}/releases/download/${UPSTREAM_TAG}/${UPSTREAM_CORE_ASSET}}"
 UPSTREAM_SOURCE_URL="${UPSTREAM_SOURCE_URL:-https://github.com/${UPSTREAM_REPOSITORY}/archive/${UPSTREAM_COMMIT}.tar.gz}"
 EXPECTED_CORE_SHA_FILE="${EXPECTED_CORE_SHA_FILE:-$ROOT/UPSTREAM_CORE_SHA256}"
 EXPECTED_SOURCE_SHA_FILE="${EXPECTED_SOURCE_SHA_FILE:-$ROOT/UPSTREAM_SOURCE_SHA256}"
@@ -62,31 +62,19 @@ download() {
         --output "$destination"
 }
 
-printf '==> Resolving pinned SnappyMail core release asset\n'
+printf '==> Using pinned SnappyMail inputs\n'
 printf '    Repository: %s\n' "$UPSTREAM_REPOSITORY"
 printf '    Tag:        %s\n' "$UPSTREAM_TAG"
 printf '    Commit:     %s\n' "$UPSTREAM_COMMIT"
-printf '    API:        %s\n' "$UPSTREAM_RELEASE_API"
-
-RELEASE_JSON="$WORK_DIR/release.json"
-download "$UPSTREAM_RELEASE_API" "$RELEASE_JSON"
-
-CORE_URL="$(
-    jq -er \
-        --arg asset "$UPSTREAM_CORE_ASSET" \
-        '.assets[] | select(.name == $asset) | .browser_download_url' \
-        "$RELEASE_JSON"
-)"
-
 printf '    Core asset: %s\n' "$UPSTREAM_CORE_ASSET"
-printf '    Core URL:   %s\n' "$CORE_URL"
+printf '    Core URL:   %s\n' "$UPSTREAM_CORE_URL"
 printf '    Source URL: %s\n' "$UPSTREAM_SOURCE_URL"
 
 CORE_ARCHIVE="$WORK_DIR/$UPSTREAM_CORE_ASSET"
 SOURCE_ARCHIVE="$WORK_DIR/snappymail-source-${UPSTREAM_COMMIT}.tar.gz"
 
 echo '==> Downloading pinned core and source archives'
-download "$CORE_URL" "$CORE_ARCHIVE"
+download "$UPSTREAM_CORE_URL" "$CORE_ARCHIVE"
 download "$UPSTREAM_SOURCE_URL" "$SOURCE_ARCHIVE"
 
 CORE_SHA256="$(verify_sha256 "$CORE_ARCHIVE" "$EXPECTED_CORE_SHA_FILE" 'Core')"
@@ -143,7 +131,7 @@ printf '%s\n' "$UPSTREAM_REPOSITORY" > "$BUILD_DIR/UPSTREAM_REPOSITORY"
 printf '%s\n' "$UPSTREAM_TAG" > "$BUILD_DIR/UPSTREAM_TAG"
 printf '%s\n' "$UPSTREAM_COMMIT" > "$BUILD_DIR/UPSTREAM_COMMIT"
 printf '%s\n' "$UPSTREAM_CORE_ASSET" > "$BUILD_DIR/UPSTREAM_CORE_ASSET"
-printf '%s\n' "$CORE_URL" > "$BUILD_DIR/UPSTREAM_CORE_URL"
+printf '%s\n' "$UPSTREAM_CORE_URL" > "$BUILD_DIR/UPSTREAM_CORE_URL"
 printf '%s\n' "$CORE_SHA256" > "$BUILD_DIR/UPSTREAM_CORE_SHA256"
 printf '%s\n' "$UPSTREAM_SOURCE_URL" > "$BUILD_DIR/UPSTREAM_SOURCE_URL"
 printf '%s\n' "$SOURCE_SHA256" > "$BUILD_DIR/UPSTREAM_SOURCE_SHA256"
@@ -157,6 +145,7 @@ tar -czf "$PACKAGE" -C "$BUILD_DIR" snappymail
 (
     cd "$BUILD_DIR"
     sha256sum "$PACKAGE_NAME" > "$PACKAGE_NAME.sha256"
+    sha256sum -c "$PACKAGE_NAME.sha256"
 )
 
 printf '==> Build complete\n'
