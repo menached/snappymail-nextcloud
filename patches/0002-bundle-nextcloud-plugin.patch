@@ -1,6 +1,6 @@
 --- a/lib/Migration/InstallStep.php
 +++ b/lib/Migration/InstallStep.php
-@@ -61,10 +61,25 @@
+@@ -61,9 +61,22 @@
  			$bSave = true;
  		}
  
@@ -26,7 +26,7 @@
  			$oConfig->Set('plugins', 'enable', true);
  			$aList = \SnappyMail\Repository::getEnabledPackagesNames();
  			$aList[] = 'nextcloud';
-@@ -136,4 +151,46 @@
+@@ -136,4 +149,45 @@
  			$logger->error("custom config error: " . $e->getMessage());
  		}
  	}
