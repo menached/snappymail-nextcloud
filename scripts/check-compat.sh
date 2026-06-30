@@ -66,6 +66,24 @@ if grep -Fq "Repository::installPackage('plugin', 'nextcloud')" "$INSTALL_STEP";
     exit 1
 fi
 
+printf '==> Verifying session credential safeguards\n'
+grep -Fq '$Event->isTokenLogin()' "$APPLICATION" || {
+    echo "ERROR: Token-based logins are not excluded from password capture" >&2
+    exit 1
+}
+grep -Fq "snappymail-autologin-with-email" "$APPLICATION" || {
+    echo "ERROR: Password capture is not gated by auto-login configuration" >&2
+    exit 1
+}
+grep -Fq "remove('snappymail-passphrase')" "$APPLICATION" || {
+    echo "ERROR: Session passphrase is not explicitly removed on logout" >&2
+    exit 1
+}
+grep -Fq "remove('snappymail-nc-uid')" "$APPLICATION" || {
+    echo "ERROR: Session UID is not explicitly removed on logout" >&2
+    exit 1
+}
+
 printf '==> PHP syntax validation\n'
 while IFS= read -r -d '' php_file; do
     php -l "$php_file" >/dev/null
